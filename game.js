@@ -22,6 +22,12 @@ const PHOTOS = {
   ch2a: { src: 'assets/memories/ch2-1.jpg', w: 739,  h: 1600, y0: 178 / 1600, y1: 1385 / 1600 },
   ch3a: { src: 'assets/memories/ch3-1.jpg', w: 1101, h: 1560 },
   ch2b: { src: 'assets/memories/ch2b.jpg', w: 1170, h: 1575 },
+  ch1c: { src: 'assets/memories/ch1-3.jpg', w: 1170, h: 1575 },
+  ch2c: { src: 'assets/memories/ch2-3.jpg', w: 1170, h: 1471 },
+  ch3b: { src: 'assets/memories/ch3-2.jpg', w: 1170, h: 1717 },
+  ch3c: { src: 'assets/memories/ch3-3.jpg', w: 1200, h: 1600 },
+  ch3d: { src: 'assets/memories/ch3-4.jpg', w: 1169, h: 1866 },
+  ch3v: { src: 'assets/memories/ch3-kerem.mp4', w: 480, h: 736, video: true },
 };
 const LETTER =
 `Merhaba Ömer;
@@ -334,7 +340,8 @@ const LEVELS = {
       { x: 2600, y: 345, w: 90, h: 115, kind: 'locker' }, { x: 2690, y: 280, w: 90, h: 180, kind: 'locker' }, { x: 2780, y: 345, w: 90, h: 115, kind: 'locker' },
       { x: 3150, y: 390, w: 70, h: 70, kind: 'books' }, { x: 3400, y: 405, w: 110, h: 55, kind: 'desk' }],
     mems: [{ x: 1445, y: 350, photo: 'ch1a', lines: ['Olm küçükmüşüz lan... Gürhun ne alaka bu arada'] },
-      { x: 2735, y: 225, photo: 'ch1b', lines: ['Niye herkes kel amk'] }],
+      { x: 2735, y: 225, photo: 'ch1b', lines: ['Niye herkes kel amk'] },
+      { x: 2150, y: 400, photo: 'ch1c', lines: ['Ben niye hep kucaktayım amk?', 'Batuhan niye kafamı kokluyor?'] }],
     botStart: { x: 780, y: GY - 62, waiting: true },
     triggers: [{ x: 600, fn: meetBot }],
   },
@@ -345,7 +352,8 @@ const LEVELS = {
       { x: 840, y: 380, w: 120, h: 22, kind: 'marble' }, { x: 1200, y: 370, w: 140, h: 22, kind: 'marble' }, { x: 1380, y: 290, w: 120, h: 22, kind: 'marble' },
       { x: 1900, y: 380, w: 120, h: 22, kind: 'marble' }, { x: 2070, y: 300, w: 120, h: 22, kind: 'marble' }, { x: 2240, y: 220, w: 150, h: 22, kind: 'marble' },
       { x: 2560, y: 380, w: 110, h: 22, kind: 'marble' }, { x: 3100, y: 370, w: 120, h: 22, kind: 'marble' }, { x: 3300, y: 300, w: 120, h: 22, kind: 'marble' }],
-    mems: [{ x: 2315, y: 165, photo: 'ch2a', fire: true, lines: [] }],
+    mems: [{ x: 2315, y: 165, photo: 'ch2a', fire: true, lines: [] },
+      { x: 3360, y: 245, photo: 'ch2c', lines: ['Çek aqqq çek'] }],
     startLines: [say('bot', 'Dayyum')],
     triggers: [{ x: 1100, fn: () => botSay('Mentos ister misin? Hâlâ 1 lira.', 170) }],
   },
@@ -353,7 +361,11 @@ const LEVELS = {
     key: 'ch3', num: 'CHAPTER 3', name: 'Graduation', sub: "♪ Can't Tell Me Nothing", font: 'Fredoka, sans-serif', song: SONGS.ch3,
     len: 4000, exit: 3840,
     plats: [ground(0, 700), ground(800, 1300, 420), ground(1410, 1900, 380), ground(2000, 2500, 430), ground(2600, 2800, 350), ground(2900, 3300, 300), ground(3400, 4000)],
-    mems: [{ x: 1650, y: 320, photo: 'ch3a', babun: true, lines: ['Özledim.', 'Fotoğraftaki babunu bulun.'] }],
+    mems: [{ x: 1650, y: 320, photo: 'ch3a', babun: true, lines: ['Özledim.', 'Fotoğraftaki babunu bulun.'] },
+      { x: 1050, y: 370, photo: 'ch3b', lines: ['Herkes mutlu çıkmış... ben hariç'] },
+      { x: 2250, y: 380, photo: 'ch3c', lines: ['Babunu bul 😂', 'Şaka şaka, güzel fotoğraf.', { who: 'can', text: 'Anlamadım, ne?' }] },
+      { x: 2700, y: 300, photo: 'ch3v', lines: ['Ulan Scooby...'] },
+      { x: 3100, y: 250, photo: 'ch3d', lines: ['YKS öncesi son okul günü... vay be'] }],
     startLines: [say('bot', "Sana güveniyorum kardeşim git ve Harun'un içinden geç ben buradayım")],
     triggers: [],
   },
@@ -451,23 +463,33 @@ function updateBot() {
 }
 
 // ---------------- MEMORY MODAL ----------------
+const FACE_W = { bot: 1200, dgc: 515, can: 1101, yusuf: 1101 };
+function setAvatar(who) {
+  const f = FACES[who] || FACES.bot, iw = FACE_W[who] || 1200, av = $('cav');
+  av.style.backgroundImage = `url(${f.src})`;
+  av.style.backgroundSize = `${(iw / f.s) * 44}px auto`;
+  av.style.backgroundPosition = `${-f.x / f.s * 44}px ${-f.y / f.s * 44}px`;
+}
 function openMemory(m) {
   G.modal = true; SFX.pick();
   const ph = PHOTOS[m.photo], img = $('pimg'), crop = $('pcrop');
   const y0 = ph.y0 || 0, y1 = ph.y1 || 1;
   const boxH = 340, imgH = boxH / (y1 - y0), imgW = imgH * ph.w / ph.h;
-  img.src = ph.src; img.style.width = imgW + 'px'; img.style.marginTop = (-y0 * imgH) + 'px';
+  const vid = $('pvid');
+  if (ph.video) {
+    img.style.display = 'none'; vid.style.display = 'block'; vid.src = ph.src; vid.style.width = imgW + 'px'; vid.style.height = boxH + 'px';
+    vid.currentTime = 0; G.memMusic = musicVol; setMusicVol(0); vid.play().catch(() => {});
+  } else { vid.pause(); vid.removeAttribute('src'); vid.style.display = 'none'; img.style.display = 'block'; }
+  img.src = ph.video ? '' : ph.src; img.style.width = imgW + 'px'; img.style.marginTop = (-y0 * imgH) + 'px';
   crop.style.width = imgW + 'px'; crop.style.height = boxH + 'px';
   $('monkey').classList.remove('on');
-  $('cav').style.backgroundImage = `url(${FACES.bot.src})`;
-  $('cav').style.backgroundSize = `${(1200 / 300) * 44}px auto`;
-  $('cav').style.backgroundPosition = `${-545 / 300 * 44}px ${-540 / 300 * 44}px`;
+  setAvatar('bot');
   const cbox = $('cbox'), ctext = $('ctext'), next = $('cnext');
   cbox.classList.remove('on'); next.style.opacity = 0;
   $('mem').classList.add('show');
 
   const steps = [];
-  m.lines.forEach(l => steps.push({ type: 'line', text: l }));
+  m.lines.forEach(l => steps.push(typeof l === 'string' ? { type: 'line', text: l, who: 'bot' } : { type: 'line', text: l.text, who: l.who }));
   if (m.babun) steps.push({ type: 'babun' }, { type: 'line', text: 'Aynen 😂' });
   if (m.fire) steps.push({ type: 'fire' });
   let i = -1;
@@ -478,7 +500,7 @@ function openMemory(m) {
     const s = steps[i];
     if (s.type === 'line') {
       cbox.classList.remove('on');
-      setTimeout(() => { ctext.textContent = s.text; cbox.classList.add('on'); SFX.blip(); next.style.opacity = .6; waitingKey = true; }, 180);
+      setTimeout(() => { setAvatar(s.who || 'bot'); ctext.textContent = s.text; cbox.classList.add('on'); SFX.blip(); next.style.opacity = .6; waitingKey = true; }, 180);
     } else if (s.type === 'fire') {
       cbox.classList.remove('on'); next.style.opacity = 0;
       const pol = $('pol').getBoundingClientRect(), st = $('stage').getBoundingClientRect();
@@ -516,6 +538,7 @@ function openMemory(m) {
   G.memKey = () => { if (waitingKey) { waitingKey = false; next.style.opacity = 0; step(); } };
   function close() {
     $('mem').classList.remove('show'); G.memKey = null;
+    if (ph.video) { vid.pause(); setMusicVol(G.memMusic || 45); }
     setTimeout(() => { G.modal = false; }, 200);
   }
   setTimeout(step, 500);
@@ -943,6 +966,7 @@ function updateBossMode() {
   if (boss && arenaPhase !== 'dead' && (!G.dialog.length || boss.state === 'emerging')) { if (boss.type === 'harun') updHarun(); else if (boss.type === 'vural') updVural(); else if (boss.type === 'can') updCan(); else if (boss.type === 'elif') updElif(); else updSevgi(); }
   if (G.arena === 'early') updEarlyExtras();
   if (G.arena === 'plaza') updPlazaExtras();
+  if (G.arena === 'grad') updGrad();
   if (G.arena === 'class') updClassExtras();
   // projectiles
   for (const p of projs) {
@@ -1127,13 +1151,14 @@ function drawCrack() {
 function drawBossMode() {
   ctx.save();
   if (G.shake > 0) { ctx.translate(rand(-G.shake, G.shake), rand(-G.shake, G.shake)); G.shake *= 0.86; if (G.shake < 0.5) G.shake = 0; }
-  if (G.arena === 'class') drawClassroom(); else if (G.arena === 'early') drawEarlyArena(); else if (G.arena === 'plaza') drawPlaza(); else drawArena();
+  if (G.arena === 'class') drawClassroom(); else if (G.arena === 'early') drawEarlyArena(); else if (G.arena === 'plaza') drawPlaza(); else if (G.arena === 'grad') drawGradArena(); else drawArena();
   drawParts(0, false);
   for (const w of waves) { ctx.fillStyle = 'rgba(240,220,170,.85)'; ctx.beginPath(); ctx.moveTo(w.x - 14, AGY); ctx.quadraticCurveTo(w.x, AGY - w.h * 1.6, w.x + 14, AGY); ctx.fill(); }
   if (boss && boss.type === 'harun') drawHarun(boss);
   if (G.arena === 'class') drawClassActors();
   if (G.arena === 'early') drawEarlyActors();
   if (G.arena === 'plaza') drawPlazaActors();
+  if (G.arena === 'grad') drawGradActors();
   if (boss && boss.type === 'sevgi') drawSevgi(boss); else if (arenaPhase === 'sevgiIntro') drawCrack();
   drawBot(B, 0);
   drawDGC(P, 0);
@@ -1145,6 +1170,7 @@ function drawBossMode() {
   if (G.arena === 'class') drawClassOverlay();
   if (G.arena === 'early') drawEarlyOverlay();
   if (G.arena === 'plaza') drawPlazaOverlay();
+  if (G.arena === 'grad') drawGradOverlay();
   // hearts
   ctx.font = '22px "Segoe UI Emoji"'; ctx.textAlign = 'left';
   if (arenaPhase !== 'cut') { for (let i = 0; i < 3; i++) { ctx.globalAlpha = i < P.hp ? 1 : 0.2; ctx.fillText('❤️', 16 + i * 30, 36); } ctx.globalAlpha = 1; }
@@ -1326,6 +1352,7 @@ $('go').addEventListener('click', async () => {
     else if (q === 'vural') { G.level = LEVELS.ch2; startClass(); setTimeout(() => { G.dialog = []; startVuralFightDirect(); }, 300); }
     else if (q === 'sevgi') { startBoss(); setTimeout(() => { G.dialog = []; boss = null; sevgiIntro(); }, 800); }
     else if (q === 'final') startFinal();
+    else if (q === 'kerem') { G.level = LEVELS.ch2; startLevel('ch3'); }
     else if (q === 'elif') { G.level = LEVELS.ch2; G.classDone = true; startElifFight(); }
     else if (q === 'cake' || q === 'post') endingSkip(q);
     else startLevel(q);
