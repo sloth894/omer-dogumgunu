@@ -706,6 +706,7 @@ function nextLevel() {
   G.mode = 'trans';
   if (G.level.key === 'ch1' && !G.canDone) fadeTo(startCanFight);
   else if (G.level.key === 'ch2' && !G.classDone) fadeTo(startClass);
+  else if (G.level.key === 'ch2' && !G.elifDone) fadeTo(startElifFight);
   else if (i < ORDER.length - 1) showCard(ORDER[i + 1], () => startLevel(ORDER[i + 1]));
   else fadeTo(() => startBoss());
 }
@@ -776,6 +777,7 @@ function hurtPlayer() {
         P.hp = 3; P.x = 140; P.y = AGY - P.h; P.blink = 60; P.dizzy = 0; projs = []; waves = [];
         if (t === 'vural') { resetVuralFight(); }
         else if (t === 'can') { resetCanFight(); }
+        else if (t === 'elif') { resetElifFight(); }
         else if (t === 'harun') { makeHarun(); boss.state = 'idle'; boss.t = 60; arenaPhase = 'harun'; }
         else { makeSevgi(); boss.x = W - 260; boss.y = AGY - boss.h; boss.state = 'idle'; boss.t = 60; arenaPhase = 'sevgi'; }
       });
@@ -934,11 +936,12 @@ function updSlipper() {
 
 function updateBossMode() {
   tickDialog();
-  const blocked = G.dialog.length > 0 || ['harunIntro', 'sevgiIntro', 'dead', 'throwing', 'cut', 'vdown', 'cdown'].includes(arenaPhase);
+  const blocked = G.dialog.length > 0 || ['harunIntro', 'sevgiIntro', 'dead', 'throwing', 'cut', 'vdown', 'cdown', 'ecut', 'edown', 'rodeo'].includes(arenaPhase);
   updatePlayer(!blocked);
   if (B.bubble) { B.bubble.t--; if (B.bubble.t <= 0) B.bubble = null; }
-  if (boss && arenaPhase !== 'dead' && (!G.dialog.length || boss.state === 'emerging')) { if (boss.type === 'harun') updHarun(); else if (boss.type === 'vural') updVural(); else if (boss.type === 'can') updCan(); else updSevgi(); }
+  if (boss && arenaPhase !== 'dead' && (!G.dialog.length || boss.state === 'emerging')) { if (boss.type === 'harun') updHarun(); else if (boss.type === 'vural') updVural(); else if (boss.type === 'can') updCan(); else if (boss.type === 'elif') updElif(); else updSevgi(); }
   if (G.arena === 'early') updEarlyExtras();
+  if (G.arena === 'plaza') updPlazaExtras();
   if (G.arena === 'class') updClassExtras();
   // projectiles
   for (const p of projs) {
@@ -1123,12 +1126,13 @@ function drawCrack() {
 function drawBossMode() {
   ctx.save();
   if (G.shake > 0) { ctx.translate(rand(-G.shake, G.shake), rand(-G.shake, G.shake)); G.shake *= 0.86; if (G.shake < 0.5) G.shake = 0; }
-  if (G.arena === 'class') drawClassroom(); else if (G.arena === 'early') drawEarlyArena(); else drawArena();
+  if (G.arena === 'class') drawClassroom(); else if (G.arena === 'early') drawEarlyArena(); else if (G.arena === 'plaza') drawPlaza(); else drawArena();
   drawParts(0, false);
   for (const w of waves) { ctx.fillStyle = 'rgba(240,220,170,.85)'; ctx.beginPath(); ctx.moveTo(w.x - 14, AGY); ctx.quadraticCurveTo(w.x, AGY - w.h * 1.6, w.x + 14, AGY); ctx.fill(); }
   if (boss && boss.type === 'harun') drawHarun(boss);
   if (G.arena === 'class') drawClassActors();
   if (G.arena === 'early') drawEarlyActors();
+  if (G.arena === 'plaza') drawPlazaActors();
   if (boss && boss.type === 'sevgi') drawSevgi(boss); else if (arenaPhase === 'sevgiIntro') drawCrack();
   drawBot(B, 0);
   drawDGC(P, 0);
@@ -1139,6 +1143,7 @@ function drawBossMode() {
   ctx.restore();
   if (G.arena === 'class') drawClassOverlay();
   if (G.arena === 'early') drawEarlyOverlay();
+  if (G.arena === 'plaza') drawPlazaOverlay();
   // hearts
   ctx.font = '22px "Segoe UI Emoji"'; ctx.textAlign = 'left';
   if (arenaPhase !== 'cut') { for (let i = 0; i < 3; i++) { ctx.globalAlpha = i < P.hp ? 1 : 0.2; ctx.fillText('❤️', 16 + i * 30, 36); } ctx.globalAlpha = 1; }
@@ -1320,6 +1325,7 @@ $('go').addEventListener('click', async () => {
     else if (q === 'vural') { G.level = LEVELS.ch2; startClass(); setTimeout(() => { G.dialog = []; startVuralFightDirect(); }, 300); }
     else if (q === 'sevgi') { startBoss(); setTimeout(() => { G.dialog = []; boss = null; sevgiIntro(); }, 800); }
     else if (q === 'final') startFinal();
+    else if (q === 'elif') { G.level = LEVELS.ch2; G.classDone = true; startElifFight(); }
     else if (q === 'cake' || q === 'post') endingSkip(q);
     else startLevel(q);
   }));
