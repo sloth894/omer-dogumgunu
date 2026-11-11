@@ -4,7 +4,7 @@
 'use strict';
 
 let apples = [], oles = [], cape = null, elifTitleT = 0, RODEO = null, dropPhoto = null;
-const ELIF_MEMORY = { photo: 'ch2b', lines: [] };   // fotoğraf gelince doldurulacak
+const ELIF_MEMORY = { photo: 'ch2b', lines: ['Derste boğa, dışarıda piyasa. 😎'] };
 
 function makeElif() {
   boss = { type: 'elif', x: W + 40, y: AGY - 92, w: 58, h: 92, hp: 3, state: 'intro', t: 0, facing: -1, vx: 0, flash: 0, bubble: null, cycle: 0, moving: false, phase: 0, buck: 0, passed: false };
