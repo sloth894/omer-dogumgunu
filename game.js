@@ -291,11 +291,25 @@ let idleT = 0, fellOnce = false, collected = [];
 
 function say(who, text, type = 'say') { return { who, text, type }; }
 function runDialog(lines, cb) { G.dialog = lines.slice(); G.dialogCb = cb || null; G.dialogT = 0; SFX.blip(); }
+function shownText(d) { return d.type === 'slow' ? d.text.slice(0, Math.floor(G.dialogT / 6)) : d.text; }
+function tickDialog() {
+  if (!G.dialog.length) return;
+  G.dialogT++;
+  const d = G.dialog[0];
+  if (d.type === 'slow' && G.dialogT % 6 === 0 && shownText(d).length < d.text.length) sfx(300, 0.03, 'triangle', 0.03);
+  if (advancePressed() && G.dialogT > 12) {
+    if (d.type === 'slow' && shownText(d).length < d.text.length) { G.dialogT = d.text.length * 6; return; }
+    G.dialog.shift(); G.dialogT = 0;
+    if (G.dialog.length) SFX.blip(); else if (G.dialogCb) { const cb = G.dialogCb; G.dialogCb = null; cb(); }
+  }
+}
 function speakerPos(who) {
   if (who === 'dgc') return { x: P.x + P.w / 2 - G.camX, y: P.y - 40 };
   if (who === 'bot') return { x: B.x + B.w / 2 - G.camX, y: B.y - 34 };
   if (who === 'harun' && boss) return { x: boss.x + boss.w / 2, y: boss.y - 30 };
   if (who === 'sevgi' && boss) return { x: boss.x + boss.w / 2, y: boss.y - 20 };
+  if (who === 'vural' && boss) return { x: boss.x + boss.w / 2, y: boss.y - 60 };
+  if (who === 'sukru' && typeof SK !== 'undefined' && SK) return { x: SK.x + SK.w / 2, y: SK.hang ? SK.y + 10 : SK.y - 30 };
   return { x: W / 2, y: 160 };
 }
 function botSay(text, dur = 150) { B.bubble = { text, t: dur, type: 'say' }; }
@@ -659,10 +673,7 @@ function updatePlay() {
   const L = G.level;
   const blocked = G.dialog.length > 0 || G.modal;
   if (G.modal) { if (advancePressed() && G.memKey) G.memKey(); return; }
-  if (G.dialog.length) {
-    G.dialogT++;
-    if (advancePressed() && G.dialogT > 12) { G.dialog.shift(); G.dialogT = 0; if (G.dialog.length) SFX.blip(); else if (G.dialogCb) { const cb = G.dialogCb; G.dialogCb = null; cb(); } }
-  }
+  tickDialog();
   updatePlayer(!blocked);
   updateBot();
   // waiting bot idle look
@@ -688,7 +699,8 @@ function updatePlay() {
 function nextLevel() {
   const i = ORDER.indexOf(G.level.key);
   G.mode = 'trans';
-  if (i < ORDER.length - 1) showCard(ORDER[i + 1], () => startLevel(ORDER[i + 1]));
+  if (G.level.key === 'ch2' && !G.classDone) fadeTo(startClass);
+  else if (i < ORDER.length - 1) showCard(ORDER[i + 1], () => startLevel(ORDER[i + 1]));
   else fadeTo(() => startBoss());
 }
 let fade = 0, fadeDir = 0, fadeCb = null;
@@ -716,7 +728,7 @@ function drawPlay() {
 function drawBubbles() {
   if (G.dialog.length) {
     const d = G.dialog[0], p = speakerPos(d.who);
-    bubble(p.x, p.y, d.text, d.type);
+    bubble(p.x, p.y, shownText(d) || ' ', d.type === 'slow' ? 'say' : d.type);
     ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = '600 12px Inter'; ctx.textAlign = 'center';
     ctx.fillText('ENTER ↵', W / 2, H - 14);
   }
@@ -732,7 +744,7 @@ const ARENA = { plats: [{ x: -100, y: AGY, w: W + 200, h: 200 }, { x: -60, y: -4
 let boss = null, projs = [], waves = [], slipper = null, arenaPhase = '', arenaT = 0, doorOpen = false;
 
 function startBoss() {
-  G.mode = 'boss'; G.level = LEVELS.ch3; G.camX = 0; parts = []; projs = []; waves = []; slipper = null; doorOpen = false;
+  G.mode = 'boss'; G.arena = 'etut'; G.level = LEVELS.ch3; G.camX = 0; parts = []; projs = []; waves = []; slipper = null; doorOpen = false;
   P.x = 140; P.y = AGY - P.h; P.vx = P.vy = 0; P.facing = 1; P.hp = 3;
   B.active = true; B.x = 40; B.y = AGY - B.h; B.facing = 1; B.moving = false; B.bubble = null; B.hop = 0;
   makeHarun();
@@ -756,7 +768,8 @@ function hurtPlayer() {
     setTimeout(() => {
       runDialog([say('bot', 'Ben buradayım kardeşim, tekrar dene.')], () => {
         P.hp = 3; P.x = 140; P.y = AGY - P.h; P.blink = 60; P.dizzy = 0; projs = []; waves = [];
-        if (t === 'harun') { makeHarun(); boss.state = 'idle'; boss.t = 60; arenaPhase = 'harun'; }
+        if (t === 'vural') { resetVuralFight(); }
+        else if (t === 'harun') { makeHarun(); boss.state = 'idle'; boss.t = 60; arenaPhase = 'harun'; }
         else { makeSevgi(); boss.x = W - 260; boss.y = AGY - boss.h; boss.state = 'idle'; boss.t = 60; arenaPhase = 'sevgi'; }
       });
     }, 900);
@@ -913,14 +926,12 @@ function updSlipper() {
 }
 
 function updateBossMode() {
-  if (G.dialog.length) {
-    G.dialogT++;
-    if (advancePressed() && G.dialogT > 12) { G.dialog.shift(); G.dialogT = 0; if (G.dialog.length) SFX.blip(); else if (G.dialogCb) { const cb = G.dialogCb; G.dialogCb = null; cb(); } }
-  }
-  const blocked = G.dialog.length > 0 || ['harunIntro', 'sevgiIntro', 'dead', 'throwing'].includes(arenaPhase);
+  tickDialog();
+  const blocked = G.dialog.length > 0 || ['harunIntro', 'sevgiIntro', 'dead', 'throwing', 'cut', 'vdown'].includes(arenaPhase);
   updatePlayer(!blocked);
   if (B.bubble) { B.bubble.t--; if (B.bubble.t <= 0) B.bubble = null; }
-  if (boss && arenaPhase !== 'dead' && (!G.dialog.length || boss.state === 'emerging')) { if (boss.type === 'harun') updHarun(); else updSevgi(); }
+  if (boss && arenaPhase !== 'dead' && (!G.dialog.length || boss.state === 'emerging')) { if (boss.type === 'harun') updHarun(); else if (boss.type === 'vural') updVural(); else updSevgi(); }
+  if (G.arena === 'class') updClassExtras();
   // projectiles
   for (const p of projs) {
     p.vy += 0.4; p.x += p.vx; p.y += p.vy; p.rot += 0.2;
@@ -1104,20 +1115,23 @@ function drawCrack() {
 function drawBossMode() {
   ctx.save();
   if (G.shake > 0) { ctx.translate(rand(-G.shake, G.shake), rand(-G.shake, G.shake)); G.shake *= 0.86; if (G.shake < 0.5) G.shake = 0; }
-  drawArena();
+  if (G.arena === 'class') drawClassroom(); else drawArena();
   drawParts(0, false);
   for (const w of waves) { ctx.fillStyle = 'rgba(240,220,170,.85)'; ctx.beginPath(); ctx.moveTo(w.x - 14, AGY); ctx.quadraticCurveTo(w.x, AGY - w.h * 1.6, w.x + 14, AGY); ctx.fill(); }
   if (boss && boss.type === 'harun') drawHarun(boss);
+  if (G.arena === 'class') drawClassActors();
   if (boss && boss.type === 'sevgi') drawSevgi(boss); else if (arenaPhase === 'sevgiIntro') drawCrack();
   drawBot(B, 0);
   drawDGC(P, 0);
   for (const p of projs) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); drawTea(0, 8, 1.3); ctx.restore(); }
   if (slipper) { ctx.save(); ctx.translate(slipper.x, slipper.y); ctx.rotate(slipper.rot); ctx.font = '48px "Segoe UI Emoji"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🩴', 0, 0); ctx.restore(); ctx.textBaseline = 'alphabetic'; }
   drawParts(0, true);
+  if (G.arena === 'class') drawClassFront();
   ctx.restore();
+  if (G.arena === 'class') drawClassOverlay();
   // hearts
   ctx.font = '22px "Segoe UI Emoji"'; ctx.textAlign = 'left';
-  for (let i = 0; i < 3; i++) { ctx.globalAlpha = i < P.hp ? 1 : 0.2; ctx.fillText('❤️', 16 + i * 30, 36); } ctx.globalAlpha = 1;
+  if (arenaPhase !== 'cut') { for (let i = 0; i < 3; i++) { ctx.globalAlpha = i < P.hp ? 1 : 0.2; ctx.fillText('❤️', 16 + i * 30, 36); } ctx.globalAlpha = 1; }
   // hint
   if (boss && boss.type === 'harun' && boss.state === 'refill' && boss.hp === 3) { ctx.fillStyle = '#fff'; ctx.font = '20px Bangers, Impact'; ctx.textAlign = 'center'; ctx.fillText('ÇAY DOLDURUYOR → KAFASINA ZIPLA!', W / 2, 90); }
   if (boss && boss.type === 'sevgi' && boss.state === 'stunned' && boss.hp === 2) { ctx.fillStyle = '#fff'; ctx.font = '20px Bangers, Impact'; ctx.textAlign = 'center'; ctx.fillText('SERSEMLEDİ → ÜSTÜNE ZIPLA!', W / 2, 90); }
@@ -1148,10 +1162,7 @@ function startFinal() {
   setTimeout(() => runDialog([say('bot', 'Mentos ister misin? Bu sefer bedava.')], () => { B.noMentos = true; SFX.pick(); setTimeout(showCollage, 900); }), 1500);
 }
 function updFinal() {
-  if (G.dialog.length) {
-    G.dialogT++;
-    if (advancePressed() && G.dialogT > 12) { G.dialog.shift(); G.dialogT = 0; if (!G.dialog.length && G.dialogCb) { const cb = G.dialogCb; G.dialogCb = null; cb(); } }
-  }
+  tickDialog();
   for (const c of caps) { c.vy += 0.25; c.x += c.vx; c.y += c.vy; c.rot += c.vr; if (c.y > AGY - 6) { c.y = AGY - 6; c.vy = 0; c.vx *= 0.8; c.vr = 0; } }
   if (Math.random() < 0.05) fireworks.push({ x: rand(100, W - 100), y: H, vy: -rand(8, 11), c: ['#ff4fd8', '#6af2ff', '#ffd36a', '#a57bff', '#ffffff'][(Math.random() * 5) | 0] });
   for (const f of fireworks) { f.y += f.vy; f.vy += 0.15; if (f.vy > -1.5 && !f.done) { f.done = true; burst(f.x, f.y, 50, { colors: [f.c, '#fff'], min: 1, max: 5, g: 0.05, life: 70, world: false, size: 3 }); SFX.boom(); } }
@@ -1244,6 +1255,8 @@ function step() {
   if (G.mode === 'play') updatePlay();
   else if (G.mode === 'boss') updateBossMode();
   else if (G.mode === 'final') updFinal();
+  else if (G.mode === 'office') updOffice();
+  tickScript();
   if (confettiOn && Math.random() < 0.5) parts.push({ x: rand(0, W), y: -10, vx: rand(-1, 1), vy: rand(1, 3), life: 260, max: 260, c: ['#ff4fd8', '#6af2ff', '#ffd36a', '#a57bff', '#fff'][(Math.random() * 5) | 0], s: rand(5, 9), g: 0.01, world: false, rot: rand(0, 6), vr: rand(-.2, .2), conf: true });
   updParts();
   if (fadeDir) { fade += 0.04 * fadeDir; if (fade >= 1) { fade = 1; fadeDir = -1; const cb = fadeCb; fadeCb = null; cb && cb(); } if (fade <= 0 && fadeDir === -1) { fade = 0; fadeDir = 0; } }
@@ -1253,6 +1266,7 @@ function render() {
   if (G.mode === 'play' || G.mode === 'trans') { if (G.level) drawPlay(); }
   else if (G.mode === 'boss') drawBossMode();
   else if (G.mode === 'final') drawFinal();
+  else if (G.mode === 'office') drawOffice();
   else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
   if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
 }
@@ -1287,11 +1301,14 @@ $('go').addEventListener('click', async () => {
 (function () {
   const q = new URLSearchParams(location.search).get('skip'); if (!q) return;
   $('pw').classList.remove('show');
-  ready.then(() => {
+  window.addEventListener('load', () => ready.then(() => {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     if (q === 'boss') startBoss();
+    else if (q === 'class') { G.level = LEVELS.ch2; startClass(); }
+    else if (q === 'office') { G.level = LEVELS.ch2; startClass(); setTimeout(() => { G.dialog = []; startOffice(); }, 300); }
+    else if (q === 'vural') { G.level = LEVELS.ch2; startClass(); setTimeout(() => { G.dialog = []; startVuralFightDirect(); }, 300); }
     else if (q === 'sevgi') { startBoss(); setTimeout(() => { G.dialog = []; boss = null; sevgiIntro(); }, 800); }
     else if (q === 'final') startFinal();
     else startLevel(q);
-  });
+  }));
 })();
