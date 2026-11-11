@@ -1320,6 +1320,7 @@ $('go').addEventListener('click', async () => {
     else if (q === 'vural') { G.level = LEVELS.ch2; startClass(); setTimeout(() => { G.dialog = []; startVuralFightDirect(); }, 300); }
     else if (q === 'sevgi') { startBoss(); setTimeout(() => { G.dialog = []; boss = null; sevgiIntro(); }, 800); }
     else if (q === 'final') startFinal();
+    else if (q === 'cake' || q === 'post') endingSkip(q);
     else startLevel(q);
   }));
 })();
