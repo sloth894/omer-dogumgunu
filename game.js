@@ -27,7 +27,7 @@ const PHOTOS = {
   ch3b: { src: 'assets/memories/ch3-2.jpg', w: 1170, h: 1717 },
   ch3c: { src: 'assets/memories/ch3-3.jpg', w: 1200, h: 1600 },
   ch3d: { src: 'assets/memories/ch3-4.jpg', w: 1169, h: 1866 },
-  ch3v: { src: 'assets/memories/ch3-kerem.mp4', w: 480, h: 736, video: true },
+  ch3v: { src: 'assets/memories/ch3-kerem2.mp4', w: 480, h: 736, video: true },
 };
 const LETTER =
 `Merhaba Ömer;

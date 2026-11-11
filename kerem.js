@@ -100,7 +100,7 @@ function drawGradOverlay() {
     const a = clamp(gradTitleT / 20, 0, 1) * clamp((130 - gradTitleT) / 15, 0, 1);
     ctx.globalAlpha = a; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, H / 2 - 64, W, 118);
     ctx.textAlign = 'center'; ctx.fillStyle = '#ffd36a'; ctx.font = '26px Bangers, Impact'; ctx.fillText('BOSS FIGHT', W / 2, H / 2 - 28);
-    ctx.fillStyle = '#fff'; ctx.font = '56px Bangers, Impact'; ctx.fillText('BOT ÖMER  vs  KEREM EREN', W / 2, H / 2 + 26);
+    ctx.fillStyle = '#fff'; ctx.font = '56px Bangers, Impact'; ctx.fillText('ÖMER  vs  KEREM EREN', W / 2, H / 2 + 26);
     ctx.globalAlpha = 1;
   }
 }
